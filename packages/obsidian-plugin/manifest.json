@@ -1,0 +1,9 @@
+{
+  "id": "guiderail-companion",
+  "name": "GuideRail Companion",
+  "version": "0.2.0",
+  "minAppVersion": "1.5.0",
+  "description": "Receives GuideRail captures over a private loopback connection and saves them to this vault.",
+  "author": "GuideRail",
+  "isDesktopOnly": true
+}

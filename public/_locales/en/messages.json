@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "GuideRail"
+  },
+  "extDescription": {
+    "message": "Save ChatGPT replies and images directly into your local Obsidian vault or disk folder with Markdown support."
+  },
+  "cmdSaveSelection": {
+    "message": "Clip selected text to GuideRail"
+  }
+}

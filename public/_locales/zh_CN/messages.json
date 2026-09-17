@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "GuideRail"
+  },
+  "extDescription": {
+    "message": "收藏 ChatGPT 回复和图片，自动保存到本地笔记库，支持 Markdown 与 Obsidian。"
+  },
+  "cmdSaveSelection": {
+    "message": "收藏选中文本到 GuideRail"
+  }
+}

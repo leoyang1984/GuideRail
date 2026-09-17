@@ -1,0 +1,45 @@
+{
+  "name": "guiderail",
+  "version": "0.7.1",
+  "private": true,
+  "description": "Save, revisit and export ChatGPT replies as local Markdown notes.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "build": "npm run typecheck && vite build && node scripts/build-content.mjs && node scripts/third-party-notices.mjs && node scripts/check-build.mjs",
+    "build:release": "node scripts/clean-dist.mjs && npm run build",
+    "build:companion": "npm --prefix packages/obsidian-plugin run build",
+    "check:privacy": "node scripts/check-privacy.mjs",
+    "check:history": "node scripts/check-privacy.mjs --history",
+    "package:cws": "node scripts/clean-dist.mjs && npm run build && node scripts/package-cws.mjs",
+    "release:cws": "npm run check:privacy && npm test && npm run build:release && node scripts/package-cws.mjs",
+    "release:local": "npm run check:privacy && npm test && npm run build:release && npm run build:companion && node scripts/package-release.mjs"
+  },
+  "dependencies": {
+    "marked": "^15.0.12",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "turndown": "^7.2.4",
+    "turndown-plugin-gfm": "^1.0.2"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.287",
+    "@types/node": "^22.20.3",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/turndown": "^5.0.6",
+    "jsdom": "25.0.1",
+    "obsidian": "^1.13.1",
+    "postcss": "8.5.28",
+    "typescript": "~5.7.3",
+    "vite": "^6.4.1",
+    "vitest": "^3.2.4",
+    "yaml": "^2.9.0"
+  }
+}

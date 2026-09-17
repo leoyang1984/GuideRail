@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy - GuideRail</title>
+  <style>
+    :root {
+      --bg: #fafafa;
+      --card-bg: #ffffff;
+      --text: #1f2937;
+      --text-muted: #4b5563;
+      --border: #e5e7eb;
+      --primary: #2563eb;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a;
+        --card-bg: #1e293b;
+        --text: #f3f4f6;
+        --text-muted: #9ca3af;
+        --border: #334155;
+        --primary: #3b82f6;
+      }
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      margin: 0;
+      padding: 2rem 1rem;
+    }
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+    h1 {
+      margin-top: 0;
+      font-size: 1.85rem;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 0.75rem;
+    }
+    h2 {
+      font-size: 1.25rem;
+      margin-top: 1.75rem;
+      color: var(--primary);
+    }
+    p, li {
+      color: var(--text-muted);
+      font-size: 0.975rem;
+    }
+    ul {
+      padding-left: 1.25rem;
+    }
+    li {
+      margin-bottom: 0.5rem;
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.6rem;
+      background: rgba(37, 99, 235, 0.1);
+      color: var(--primary);
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+    .footer {
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <span class="badge">Local-First Architecture</span>
+    <h1>Privacy Policy for GuideRail</h1>
+    <p><em>Last updated: September 17, 2026</em></p>
+
+    <p>GuideRail is an open-source, local-first browser extension designed to help users clip and organize ChatGPT conversation replies and reference images as local Markdown notes.</p>
+
+    <h2>1. Data Collection and Storage</h2>
+    <ul>
+      <li><strong>Zero Cloud Storage / No Remote Servers</strong>: GuideRail does NOT operate external servers, cloud databases, user tracking systems, or telemetry services.</li>
+      <li><strong>Local-Only Storage</strong>: All clipped text content, Markdown notes, timestamps, conversation references, and downloaded images are saved exclusively to your local storage (either a local directory authorized via the browser's File System Access API or your local Obsidian Vault via the GuideRail Companion plugin).</li>
+      <li><strong>No Account Required</strong>: You do not need to create an account, register, or provide an email address to use GuideRail.</li>
+    </ul>
+
+    <h2>2. Website Content Access and Permissions</h2>
+    <ul>
+      <li><strong>ChatGPT Pages (<code>https://chatgpt.com/*</code>)</strong>: GuideRail injects a content script solely to identify rendered assistant replies and place a "Bookmark" button. It only reads conversation text and images <strong>after</strong> you explicitly click the Bookmark button.</li>
+      <li><strong>Image Downloads (<code>https://images.openai.com/*</code>, <code>https://*.oaiusercontent.com/*</code>)</strong>: When you bookmark a reply that contains OpenAI/ChatGPT-generated images or diagrams, GuideRail downloads the image files directly to your local attachment directory to ensure your Markdown notes work completely offline. These requests do not transmit personal credentials.</li>
+      <li><strong>Local Loopback Communication (<code>http://127.0.0.1:*</code>)</strong>: If you choose to pair GuideRail with the desktop Obsidian Companion plugin, GuideRail communicates exclusively with <code>127.0.0.1</code> (localhost loopback) using a cryptographically random, one-time pairing token. No data is broadcast across local networks or the internet.</li>
+    </ul>
+
+    <h2>3. Third-Party Sharing</h2>
+    <p>GuideRail does NOT sell, rent, monetize, or transfer your data to any third party, advertising network, data broker, or AI training pipeline.</p>
+
+    <h2>4. User Rights and Data Deletion</h2>
+    <p>Because all notes and images reside entirely on your local machine, you have full ownership and control over your data. You can view, edit, move, or delete your saved notes at any time using your file explorer or Obsidian. Uninstalling the extension leaves your local files intact on your disk.</p>
+
+    <h2>5. Open Source Transparency</h2>
+    <p>GuideRail's source code is public and verifiable under the MIT license.</p>
+
+    <div class="footer">
+      GuideRail &copy; 2026. Built with local privacy by design.
+    </div>
+  </div>
+</body>
+</html>
