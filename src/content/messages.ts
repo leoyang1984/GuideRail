@@ -6,6 +6,14 @@ import type { Capture } from '../storage/schema';
 import { t, setGlobalLanguageSetting, LANGUAGE_SETTING_KEY } from '../i18n/core';
 
 (() => {
+  function isContextValid(): boolean {
+    try {
+      return typeof chrome !== 'undefined' && Boolean(chrome.runtime?.id);
+    } catch {
+      return false;
+    }
+  }
+
   let locateGeneration = 0;
   const saving = new WeakSet<HTMLElement>();
   const buttonOwners = new WeakMap<HTMLElement, HTMLElement>();
@@ -46,6 +54,11 @@ import { t, setGlobalLanguageSetting, LANGUAGE_SETTING_KEY } from '../i18n/core'
     return { data, size };
   }
   async function collect(el: HTMLElement) {
+    if (!isContextValid()) {
+      const button = el.querySelector<HTMLButtonElement>('[data-guiderail="collect"]');
+      if (button) button.textContent = t('toastExtensionUpdated');
+      return;
+    }
     if (streaming() || saving.has(el)) return;
     const images = messageImages(el);
     const capture = snapshot(el, images); if (!capture) return;
@@ -137,6 +150,10 @@ import { t, setGlobalLanguageSetting, LANGUAGE_SETTING_KEY } from '../i18n/core'
 
   let clipping = false;
   async function clipSelection() {
+    if (!isContextValid()) {
+      showToast(t('toastExtensionUpdated'), true);
+      return;
+    }
     if (clipping) return;
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed || !selection.toString().trim()) {
@@ -226,6 +243,7 @@ import { t, setGlobalLanguageSetting, LANGUAGE_SETTING_KEY } from '../i18n/core'
   }
 
   window.addEventListener('keydown', event => {
+    if (!isContextValid()) return;
     if (event.altKey && !event.ctrlKey && !event.metaKey && (event.code === 'KeyS' || event.key === 's' || event.key === 'S' || event.key === 'ß')) {
       event.preventDefault();
       void clipSelection();
@@ -233,7 +251,7 @@ import { t, setGlobalLanguageSetting, LANGUAGE_SETTING_KEY } from '../i18n/core'
   });
 
   try {
-    if (typeof chrome !== 'undefined' && chrome.runtime?.id) {
+    if (isContextValid()) {
       chrome.storage?.local?.get(LANGUAGE_SETTING_KEY).then(res => {
         if (res?.[LANGUAGE_SETTING_KEY]) setGlobalLanguageSetting(res[LANGUAGE_SETTING_KEY]);
         scan();
@@ -251,7 +269,7 @@ import { t, setGlobalLanguageSetting, LANGUAGE_SETTING_KEY } from '../i18n/core'
   } catch {}
 
   function scan() {
-    if (typeof chrome === 'undefined' || !chrome.runtime?.id) return;
+    if (!isContextValid()) return;
     try {
       const targets = captureTargets();
       document.querySelectorAll<HTMLElement>('[data-guiderail="collect"]').forEach(button => { if (!targets.includes(buttonOwners.get(button)!)) { const parent = button.parentElement; button.remove(); if (parent?.dataset.guiderail === 'actions') parent.remove(); } });
@@ -277,7 +295,7 @@ import { t, setGlobalLanguageSetting, LANGUAGE_SETTING_KEY } from '../i18n/core'
     } catch {}
   }
   const scanInterval = setInterval(() => {
-    if (typeof chrome === 'undefined' || !chrome.runtime?.id) {
+    if (!isContextValid()) {
       clearInterval(scanInterval);
       return;
     }
