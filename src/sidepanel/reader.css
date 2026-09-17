@@ -213,6 +213,14 @@
 .reader-app:has(.reading-title) :is(.app-tagline, .conversation-note, .capture-note[data-routine="true"]) { display: none; }
 .library-setup { padding: 20px; border: 1px solid var(--reader-border); border-radius: 12px; margin: 18px 0; background: var(--reader-surface); }
 .library-setup button { margin: 6px 8px 6px 0; }
+.companion-tip-box { padding: 9px 12px; background: var(--reader-subtle); border-left: 3px solid var(--reader-accent); border-radius: 6px; font-size: 12px; color: var(--reader-ink); line-height: 1.5; margin: 10px 0 14px; }
+.companion-vault-badge { font-size: 13px; font-weight: 500; color: var(--reader-ink); margin: 6px 0 12px; }
+.companion-troubleshoot-box { background: var(--reader-subtle); border: 1px solid var(--reader-border); border-radius: 8px; padding: 11px 14px; margin: 10px 0 14px; font-size: 12px; }
+.troubleshoot-heading { font-weight: 600; margin: 0 0 6px; color: var(--reader-ink); }
+.troubleshoot-steps { margin: 0; padding-left: 18px; color: var(--reader-muted); line-height: 1.6; }
+.companion-reconfigure { margin: 12px 0 10px; font-size: 12px; color: var(--reader-muted); }
+.companion-reconfigure summary { cursor: pointer; padding: 4px 0; user-select: none; }
+.companion-reconfigure form { margin-top: 8px; }
 .companion-help { margin: 10px 0 14px; font-size: 12px; }
 .companion-help-link { color: var(--reader-link); text-decoration: underline; text-underline-offset: 2px; }
 .companion-help-link:hover { opacity: 0.85; }
