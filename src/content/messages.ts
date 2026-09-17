@@ -232,108 +232,128 @@ import { t, setGlobalLanguageSetting, LANGUAGE_SETTING_KEY } from '../i18n/core'
     }
   });
 
-  chrome.storage?.local?.get(LANGUAGE_SETTING_KEY).then(res => {
-    if (res?.[LANGUAGE_SETTING_KEY]) setGlobalLanguageSetting(res[LANGUAGE_SETTING_KEY]);
-    scan();
-  }).catch(() => {});
+  try {
+    if (typeof chrome !== 'undefined' && chrome.runtime?.id) {
+      chrome.storage?.local?.get(LANGUAGE_SETTING_KEY).then(res => {
+        if (res?.[LANGUAGE_SETTING_KEY]) setGlobalLanguageSetting(res[LANGUAGE_SETTING_KEY]);
+        scan();
+      }).catch(() => {});
 
-  chrome.storage?.onChanged?.addListener(changes => {
-    if (changes[LANGUAGE_SETTING_KEY]?.newValue) {
-      setGlobalLanguageSetting(changes[LANGUAGE_SETTING_KEY].newValue);
-      scan();
+      chrome.storage?.onChanged?.addListener(changes => {
+        try {
+          if (changes[LANGUAGE_SETTING_KEY]?.newValue) {
+            setGlobalLanguageSetting(changes[LANGUAGE_SETTING_KEY].newValue);
+            scan();
+          }
+        } catch {}
+      });
     }
-  });
+  } catch {}
 
   function scan() {
-    const targets = captureTargets();
-    document.querySelectorAll<HTMLElement>('[data-guiderail="collect"]').forEach(button => { if (!targets.includes(buttonOwners.get(button)!)) { const parent = button.parentElement; button.remove(); if (parent?.dataset.guiderail === 'actions') parent.remove(); } });
-    targets.forEach(el => {
-      let button = el.querySelector<HTMLButtonElement>('[data-guiderail="collect"]');
-      if (!button) {
-        button = node('button', t('btnBookmark')); button.dataset.guiderail = 'collect'; button.style.cssText = 'font:12px sans-serif;padding:5px 10px;display:block;align-self:flex-end;width:fit-content;max-width:100%;margin:8px 0 8px auto;border:1px solid #789;border-radius:5px;background:#f5faf7;color:#234;cursor:pointer'; button.onclick = () => { void collect(el); };
-        buttonOwners.set(button, el);
-        if (el.matches('[data-turn]')) {
-          // The turn spans the viewport; its screenshot-content wrapper follows
-          // the same centered reading column as ordinary text replies.
-          const content = el.querySelector<HTMLElement>('[data-conversation-screenshot-content]');
-          const actions = node('div'); actions.dataset.guiderail = 'actions';
-          actions.style.cssText = 'box-sizing:border-box;display:flex;justify-content:flex-end;align-self:center;width:100%;min-width:0;padding:0 2px;';
-          if (!content) actions.style.cssText += 'max-width:var(--thread-content-max-width,48rem);margin-inline:auto;padding-inline:16px;';
-          actions.append(button); (content ?? el).append(actions);
-        } else el.append(button);
-       } else if (!saving.has(el) && !button.textContent?.includes('✓') && !button.textContent?.includes('…')) {
-         button.textContent = t('btnBookmark');
-       }
-      button.disabled = streaming() || !conversation() || saving.has(el);
-    });
-  }
-  setInterval(scan, 1200); scan();
-  chrome.runtime.onMessage.addListener((message, _sender, respond) => {
-    if (message?.kind === 'guiderail:clipSelection') {
-      void clipSelection();
-      respond({ ok: true });
-      return true;
-    }
-    if (message?.kind === 'guiderail:longReplies') {
-      const replies = streaming() ? [] : captureTargets().map(el => snapshot(el)).filter((item): item is Capture => !!item && item.text.length >= 300).sort((a, b) => b.text.length - a.text.length).slice(0, 5);
-      respond({ replies }); return;
-    }
-    if (message?.kind === 'guiderail:status') { respond({ available: !!document.querySelector('[data-message-id]'), streaming: streaming() }); return; }
-    if (message?.kind !== 'guiderail:locate') return;
-    const generation = ++locateGeneration;
-    if (conversation() !== message.conversationId) { respond({ found: false, reason: 'cancelled' }); return; }
-    let interrupted = false;
-    const interrupt = () => { interrupted = true; };
-    const keyInterrupt = (event: KeyboardEvent) => { if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', 'Escape', ' '].includes(event.key)) interrupt(); };
-    window.addEventListener('wheel', interrupt, { passive: true });
-    window.addEventListener('touchstart', interrupt, { passive: true });
-    window.addEventListener('pointerdown', interrupt);
-    window.addEventListener('keydown', keyInterrupt);
-    const cancelled = () => interrupted || generation !== locateGeneration || conversation() !== message.conversationId;
-    const target = () => [...captureTargets(), ...Array.from(document.querySelectorAll<HTMLElement>('[data-message-id]'))].find(el => {
-      const currentId = messageIdentity(el)?.messageId;
-      if (!currentId) return false;
-      if (currentId === message.messageId) return true;
-      if (typeof message.messageId === 'string' && message.messageId.startsWith('hl-') && message.messageId.includes(currentId)) return true;
-      return false;
-    });
-    const scrollRoot = () => {
-      const anchor = target() ?? document.querySelector<HTMLElement>('[data-message-id]');
-      if (!anchor) return null;
-      for (let parent = anchor?.parentElement; parent; parent = parent.parentElement) {
-        if (parent.clientHeight > 0 && parent.scrollHeight > parent.clientHeight + 2 && /auto|scroll|overlay/.test(getComputedStyle(parent).overflowY)) return parent;
-      }
-      const root = document.scrollingElement;
-      return root instanceof HTMLElement && root.clientHeight > 0 ? root : null;
-    };
-    const wait = () => new Promise<void>(resolve => setTimeout(resolve, 200));
-    const run = async () => {
-      const result = await locateMessage({
-        cancelled, now: () => Date.now(), wait,
-        find: () => !!target(),
-        viewport: () => {
-          const root = scrollRoot();
-          return root ? { top: root.scrollTop, height: root.clientHeight, extent: root.scrollHeight, signature: Array.from(document.querySelectorAll<HTMLElement>('[data-message-id]')).map(el => el.dataset.messageId).join('|') } : null;
-        },
-        scroll: top => { if (!cancelled()) scrollRoot()?.scrollTo({ top, behavior: 'instant' as ScrollBehavior }); },
-        reveal: async () => {
-          const found = target(); if (!found || cancelled()) return false;
-          found.scrollIntoView({ block: 'center', behavior: 'instant' as ScrollBehavior });
-          await wait();
-          const mounted = target(); if (!mounted || cancelled()) return false;
-          const bounds = mounted.getBoundingClientRect(); const root = scrollRoot(); const viewport = root?.getBoundingClientRect();
-          if (bounds.bottom <= Math.max(0, viewport?.top ?? 0) || bounds.top >= Math.min(innerHeight, viewport?.bottom ?? innerHeight)) return false;
-          const outline = mounted.style.outline; mounted.style.outline = '3px solid #218058'; setTimeout(() => { mounted.style.outline = outline; }, 2500);
-          return true;
-        },
+    if (typeof chrome === 'undefined' || !chrome.runtime?.id) return;
+    try {
+      const targets = captureTargets();
+      document.querySelectorAll<HTMLElement>('[data-guiderail="collect"]').forEach(button => { if (!targets.includes(buttonOwners.get(button)!)) { const parent = button.parentElement; button.remove(); if (parent?.dataset.guiderail === 'actions') parent.remove(); } });
+      targets.forEach(el => {
+        let button = el.querySelector<HTMLButtonElement>('[data-guiderail="collect"]');
+        if (!button) {
+          button = node('button', t('btnBookmark')); button.dataset.guiderail = 'collect'; button.style.cssText = 'font:12px sans-serif;padding:5px 10px;display:block;align-self:flex-end;width:fit-content;max-width:100%;margin:8px 0 8px auto;border:1px solid #789;border-radius:5px;background:#f5faf7;color:#234;cursor:pointer'; button.onclick = () => { void collect(el); };
+          buttonOwners.set(button, el);
+          if (el.matches('[data-turn]')) {
+            // The turn spans the viewport; its screenshot-content wrapper follows
+            // the same centered reading column as ordinary text replies.
+            const content = el.querySelector<HTMLElement>('[data-conversation-screenshot-content]');
+            const actions = node('div'); actions.dataset.guiderail = 'actions';
+            actions.style.cssText = 'box-sizing:border-box;display:flex;justify-content:flex-end;align-self:center;width:100%;min-width:0;padding:0 2px;';
+            if (!content) actions.style.cssText += 'max-width:var(--thread-content-max-width,48rem);margin-inline:auto;padding-inline:16px;';
+            actions.append(button); (content ?? el).append(actions);
+          } else el.append(button);
+        } else if (!saving.has(el) && !button.textContent?.includes('✓') && !button.textContent?.includes('…')) {
+          button.textContent = t('btnBookmark');
+        }
+        button.disabled = streaming() || !conversation() || saving.has(el);
       });
-      const currentTarget = target();
-      respond({ ...result, changed: result.found && currentTarget ? snapshot(currentTarget)?.text !== message.text : undefined });
-    };
-    void run().catch(() => respond({ found: false, reason: 'unavailable' })).finally(() => {
-      window.removeEventListener('wheel', interrupt); window.removeEventListener('touchstart', interrupt);
-      window.removeEventListener('pointerdown', interrupt); window.removeEventListener('keydown', keyInterrupt);
-    });
-    return true;
-  });
+    } catch {}
+  }
+  const scanInterval = setInterval(() => {
+    if (typeof chrome === 'undefined' || !chrome.runtime?.id) {
+      clearInterval(scanInterval);
+      return;
+    }
+    scan();
+  }, 1200);
+  scan();
+  try {
+    if (typeof chrome !== 'undefined' && chrome.runtime?.id && chrome.runtime.onMessage) {
+      chrome.runtime.onMessage.addListener((message, _sender, respond) => {
+        if (message?.kind === 'guiderail:clipSelection') {
+          void clipSelection();
+          respond({ ok: true });
+          return true;
+        }
+        if (message?.kind === 'guiderail:longReplies') {
+          const replies = streaming() ? [] : captureTargets().map(el => snapshot(el)).filter((item): item is Capture => !!item && item.text.length >= 300).sort((a, b) => b.text.length - a.text.length).slice(0, 5);
+          respond({ replies }); return;
+        }
+        if (message?.kind === 'guiderail:status') { respond({ available: !!document.querySelector('[data-message-id]'), streaming: streaming() }); return; }
+        if (message?.kind !== 'guiderail:locate') return;
+        const generation = ++locateGeneration;
+        if (conversation() !== message.conversationId) { respond({ found: false, reason: 'cancelled' }); return; }
+        let interrupted = false;
+        const interrupt = () => { interrupted = true; };
+        const keyInterrupt = (event: KeyboardEvent) => { if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', 'Escape', ' '].includes(event.key)) interrupt(); };
+        window.addEventListener('wheel', interrupt, { passive: true });
+        window.addEventListener('touchstart', interrupt, { passive: true });
+        window.addEventListener('pointerdown', interrupt);
+        window.addEventListener('keydown', keyInterrupt);
+        const cancelled = () => interrupted || generation !== locateGeneration || conversation() !== message.conversationId;
+        const target = () => [...captureTargets(), ...Array.from(document.querySelectorAll<HTMLElement>('[data-message-id]'))].find(el => {
+          const currentId = messageIdentity(el)?.messageId;
+          if (!currentId) return false;
+          if (currentId === message.messageId) return true;
+          if (typeof message.messageId === 'string' && message.messageId.startsWith('hl-') && message.messageId.includes(currentId)) return true;
+          return false;
+        });
+        const scrollRoot = () => {
+          const anchor = target() ?? document.querySelector<HTMLElement>('[data-message-id]');
+          if (!anchor) return null;
+          for (let parent = anchor?.parentElement; parent; parent = parent.parentElement) {
+            if (parent.clientHeight > 0 && parent.scrollHeight > parent.clientHeight + 2 && /auto|scroll|overlay/.test(getComputedStyle(parent).overflowY)) return parent;
+          }
+          const root = document.scrollingElement;
+          return root instanceof HTMLElement && root.clientHeight > 0 ? root : null;
+        };
+        const wait = () => new Promise<void>(resolve => setTimeout(resolve, 200));
+        const run = async () => {
+          const result = await locateMessage({
+            cancelled, now: () => Date.now(), wait,
+            find: () => !!target(),
+            viewport: () => {
+              const root = scrollRoot();
+              return root ? { top: root.scrollTop, height: root.clientHeight, extent: root.scrollHeight, signature: Array.from(document.querySelectorAll<HTMLElement>('[data-message-id]')).map(el => el.dataset.messageId).join('|') } : null;
+            },
+            scroll: top => { if (!cancelled()) scrollRoot()?.scrollTo({ top, behavior: 'instant' as ScrollBehavior }); },
+            reveal: async () => {
+              const found = target(); if (!found || cancelled()) return false;
+              found.scrollIntoView({ block: 'center', behavior: 'instant' as ScrollBehavior });
+              await wait();
+              const mounted = target(); if (!mounted || cancelled()) return false;
+              const bounds = mounted.getBoundingClientRect(); const root = scrollRoot(); const viewport = root?.getBoundingClientRect();
+              if (bounds.bottom <= Math.max(0, viewport?.top ?? 0) || bounds.top >= Math.min(innerHeight, viewport?.bottom ?? innerHeight)) return false;
+              const outline = mounted.style.outline; mounted.style.outline = '3px solid #218058'; setTimeout(() => { mounted.style.outline = outline; }, 2500);
+              return true;
+            },
+          });
+          const currentTarget = target();
+          respond({ ...result, changed: result.found && currentTarget ? snapshot(currentTarget)?.text !== message.text : undefined });
+        };
+        void run().catch(() => respond({ found: false, reason: 'unavailable' })).finally(() => {
+          window.removeEventListener('wheel', interrupt); window.removeEventListener('touchstart', interrupt);
+          window.removeEventListener('pointerdown', interrupt); window.removeEventListener('keydown', keyInterrupt);
+        });
+        return true;
+      });
+    }
+  } catch {}
 })();

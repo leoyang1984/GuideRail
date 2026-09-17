@@ -349,9 +349,17 @@ export const dictionaries = {
 export type TranslationKey = keyof typeof dictionaries.en;
 
 export function getSystemLocale(): Locale {
-  const lang = (typeof chrome !== 'undefined' && chrome.i18n?.getUILanguage?.())
-    || (typeof navigator !== 'undefined' && navigator.language)
-    || 'en';
+  let lang = '';
+  try {
+    if (typeof chrome !== 'undefined' && chrome?.runtime?.id && chrome?.i18n?.getUILanguage) {
+      lang = chrome.i18n.getUILanguage();
+    }
+  } catch {
+    // Gracefully fallback if extension context is invalidated
+  }
+  if (!lang) {
+    lang = (typeof navigator !== 'undefined' && navigator.language) || 'en';
+  }
   return lang.toLowerCase().startsWith('zh') ? 'zh' : 'en';
 }
 
