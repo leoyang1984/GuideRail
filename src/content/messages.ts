@@ -303,21 +303,26 @@ import { t, setGlobalLanguageSetting, LANGUAGE_SETTING_KEY } from '../i18n/core'
   }, 1200);
   scan();
   try {
-    if (typeof chrome !== 'undefined' && chrome.runtime?.id && chrome.runtime.onMessage) {
+    if (isContextValid() && chrome.runtime?.onMessage) {
       chrome.runtime.onMessage.addListener((message, _sender, respond) => {
+        const safeRespond = (data: any) => {
+          try {
+            if (isContextValid()) respond(data);
+          } catch {}
+        };
         if (message?.kind === 'guiderail:clipSelection') {
           void clipSelection();
-          respond({ ok: true });
+          safeRespond({ ok: true });
           return true;
         }
         if (message?.kind === 'guiderail:longReplies') {
           const replies = streaming() ? [] : captureTargets().map(el => snapshot(el)).filter((item): item is Capture => !!item && item.text.length >= 300).sort((a, b) => b.text.length - a.text.length).slice(0, 5);
-          respond({ replies }); return;
+          safeRespond({ replies }); return;
         }
-        if (message?.kind === 'guiderail:status') { respond({ available: !!document.querySelector('[data-message-id]'), streaming: streaming() }); return; }
+        if (message?.kind === 'guiderail:status') { safeRespond({ available: !!document.querySelector('[data-message-id]'), streaming: streaming() }); return; }
         if (message?.kind !== 'guiderail:locate') return;
         const generation = ++locateGeneration;
-        if (conversation() !== message.conversationId) { respond({ found: false, reason: 'cancelled' }); return; }
+        if (conversation() !== message.conversationId) { safeRespond({ found: false, reason: 'cancelled' }); return; }
         let interrupted = false;
         const interrupt = () => { interrupted = true; };
         const keyInterrupt = (event: KeyboardEvent) => { if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', 'Escape', ' '].includes(event.key)) interrupt(); };
@@ -364,9 +369,9 @@ import { t, setGlobalLanguageSetting, LANGUAGE_SETTING_KEY } from '../i18n/core'
             },
           });
           const currentTarget = target();
-          respond({ ...result, changed: result.found && currentTarget ? snapshot(currentTarget)?.text !== message.text : undefined });
+          safeRespond({ ...result, changed: result.found && currentTarget ? snapshot(currentTarget)?.text !== message.text : undefined });
         };
-        void run().catch(() => respond({ found: false, reason: 'unavailable' })).finally(() => {
+        void run().catch(() => safeRespond({ found: false, reason: 'unavailable' })).finally(() => {
           window.removeEventListener('wheel', interrupt); window.removeEventListener('touchstart', interrupt);
           window.removeEventListener('pointerdown', interrupt); window.removeEventListener('keydown', keyInterrupt);
         });
